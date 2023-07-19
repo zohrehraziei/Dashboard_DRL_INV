@@ -26,8 +26,8 @@ class UserInputs:
     def _init_session_state(self):
         if not "welcome" in st.session_state:
             st.session_state["welcome"] = True
-        if not "agent" in st.session_state:
-            st.session_state["agent"] = 'DRL'
+        if not "agents" in st.session_state:
+            st.session_state["agents"] = ['DRL']
 
     def welcome(self):
         if st.session_state["welcome"]:
@@ -52,19 +52,19 @@ class UserInputs:
     def agent_selector(self):
         st.sidebar.write("### Data selections")
 
-        def set_agent():
-            st.session_state["agent"] = st.session_state["agent_selector"]
+        def set_agents():
+            st.session_state["agents"] = st.session_state["agent_selector"]
 
         def set_order_type():
             st.session_state["order_type"] = st.session_state["order_type_selector"]
 
         agent_list = ['DRL', 'PS']
-        agent = st.sidebar.radio(
-            label="Select Intelligent agent (distributor) type:",
+        agents = st.sidebar.multiselect(
+            label="Select Intelligent agent (distributor#1) type:",
             options=agent_list,
-            index=agent_list.index(st.session_state["agent"]),
+            default=st.session_state["agents"],
             key="agent_selector",
-            on_change=set_agent
+            on_change=set_agents
         )
 
         order_type_list = ['UpToLevel_Eq', 'UpToLevel_HC1Trust']
@@ -96,9 +96,9 @@ class UserInputs:
         st.session_state["selected_scenarios"] = selected_scenarios
 
         if "selected_scenarios" in st.session_state:
-            sheet_list = ['DS1-reward', 'DS2-reward', 'DS1-order', 'DS2-order', 'DS1-backlog', 'DS2-backlog',
-                          'DS1-Leadtime', 'DS2-Leadtime', 'HC1-orderDS1', 'HC1-orderDS2', 'HC1-T-DS1',
-                          'HC1-T-DS2']
+            sheet_list = ['DS1-order', 'DS1-inventory', 'DS1-Up', 'DS2-order',
+                          'DS2-inventory', 'DS2-Up', 'DS1-backlog', 'DS2-backlog', 'DS1-Leadtime', 'DS2-Leadtime',
+                          'HC1-orderDS1', 'HC1-orderDS2']
 
             selected_sheets = st.sidebar.multiselect(
                 label="Select DS's states, DS's reward, or HC's trust to plot:",
@@ -110,13 +110,16 @@ class UserInputs:
             st.session_state["selected_sheets"] = selected_sheets
             st.session_state["selected_data"] = {}
 
-            for sheet_name in selected_sheets:
-                file_path = f"app_data/DS1_MN1_{st.session_state['agent']}_{st.session_state['order_type']}_{st.session_state['selected_disruption']}.xlsx"
-                data = load_data(file_path)
+            for agent in st.session_state["agents"]:
+                st.session_state["selected_data"][agent] = {}
+                for sheet_name in selected_sheets:
+                    file_path = f"app_data/DS1_MN1_{agent}_{st.session_state['order_type']}_" \
+                                f"{st.session_state['selected_disruption']}.xlsx"
+                    data = load_data(file_path)
 
-                sheet_data = data.get(sheet_name)
-                if isinstance(sheet_data, pd.DataFrame):
-                    st.session_state["selected_data"][sheet_name] = sheet_data
+                    sheet_data = data.get(sheet_name)
+                    if isinstance(sheet_data, pd.DataFrame):
+                        st.session_state["selected_data"][agent][sheet_name] = sheet_data
 
 
 class InteractiveChart:
@@ -131,180 +134,119 @@ class InteractiveChart:
     def update_data(self):
         self.df = st.session_state.get("selected_data").copy()
 
-    # def draw_chart(self):
-    #     # mapping dictionary
-    #     label_dict = {
-    #         'DS1-reward': 'DS1 reward function',
-    #         'DS2-reward': 'DS2 reward function',
-    #         'DS1-order': 'Order amount by DS1',
-    #         'DS2-order': 'Order amount by DS2',
-    #         'DS1-backlog': 'Backlog at DS1',
-    #         'DS2-backlog': 'Backlog at DS2',
-    #         'DS1-Leadtime': 'Estimation of expected lead time at DS1',
-    #         'DS2-Leadtime': 'Estimation of expected lead time at DS2',
-    #         'HC1-orderDS1': "HC1's order to DS1",
-    #         'HC1-orderDS2': "HC1's order to DS2",
-    #         'HC1-T-DS1': "Trust HC1’s attributed trustworthiness to DS1",
-    #         'HC1-T-DS2': "Trust HC1’s attributed trustworthiness to DS2",
-    #         'time-taken': "Time taken",
-    #     }
-    #
-    #     disruption = pd.DataFrame([self.disruptions[st.session_state["selected_disruption"]]])
-    #
-    #     for scenario in st.session_state["selected_scenarios"]:
-    #         chart_df = None  # Move initialization here
-    #         for sheet_name, df in st.session_state["selected_data"].items():
-    #             if df is not None:
-    #                 columns_to_plot = [col for col in df.columns if scenario in col]
-    #                 if len(columns_to_plot) < 2:
-    #                     st.sidebar.write("Not enough columns for the selected scenario.")
-    #                     continue
-    #
-    #                 df_modified = df[['Time'] + columns_to_plot].copy()
-    #
-    #                 for column in columns_to_plot:
-    #                     if sheet_name in ['DS1-order', 'DS2-order']:
-    #                         std_dev = df_modified[column].std()
-    #                         df_modified[column] = df_modified[column].apply(
-    #                             lambda x: round(x - std_dev, 0) if x >= std_dev else x)
-    #                         df_modified[column] = df_modified[column].rolling(window=3, min_periods=1).mean().apply(
-    #                             lambda x: round(x, 0))
-    #
-    #                 df_modified['Average'] = df_modified[columns_to_plot].mean(axis=1)
-    #                 df_modified['State'] = sheet_name
-    #
-    #                 if chart_df is None:
-    #                     chart_df = df_modified[['Time', 'Average', 'State']].copy()
-    #                 else:
-    #                     chart_df = pd.concat([chart_df, df_modified[['Time', 'Average', 'State']]], ignore_index=True)
-    #
-    #             else:
-    #                 st.sidebar.write("Invalid sheet selected.")
-    #
-    #         # Define the line
-    #         line = alt.Chart(chart_df).mark_line().encode(
-    #             x=alt.X('Time', title='Time Period'),
-    #             y=alt.Y('Average', title=label_dict[sheet_name]),
-    #             color='State:N'
-    #         )
-    #
-    #         # Define the disruption rectangle
-    #         rect = alt.Chart(disruption).mark_rect().encode(
-    #             x='start:Q',
-    #             x2='end:Q',
-    #             color=alt.value('lightgreen')
-    #         )
-    #
-    #         # Combine charts
-    #         chart = alt.layer(line, rect).properties(
-    #             width=500,
-    #             height=300,
-    #             title=f"Sensitivity factor: {scenario}"
-    #         )
-    #
-    #         st.altair_chart(chart, use_container_width=True)
-
     def draw_chart(self):
         # mapping dictionary
         label_dict = {
-            'DS1-reward': 'DS1 reward function',
-            'DS2-reward': 'DS2 reward function',
             'DS1-order': 'Order amount by DS1',
+            'DS1-inventory': 'Inventory level at DS1',
+            'DS1-Up': 'Up to level at DS1',
             'DS2-order': 'Order amount by DS2',
+            'DS2-inventory': 'Inventory level at DS2',
+            'DS2-Up': 'Up to level at DS1',
             'DS1-backlog': 'Backlog at DS1',
             'DS2-backlog': 'Backlog at DS2',
-            'DS1-Leadtime': 'Estimation of expected lead time at DS1',
-            'DS2-Leadtime': 'Estimation of expected lead time at DS2',
+            'DS1-Leadtime': 'Est. of expt. lead time at DS1',
+            'DS2-Leadtime': 'Est. of expt. lead time at DS2',
             'HC1-orderDS1': "HC1's order to DS1",
             'HC1-orderDS2': "HC1's order to DS2",
-            'HC1-T-DS1': "Trust HC1’s attributed trustworthiness to DS1",
-            'HC1-T-DS2': "Trust HC1’s attributed trustworthiness to DS2",
-            'time-taken': "Time taken",
         }
 
         disruption = pd.DataFrame([self.disruptions[st.session_state["selected_disruption"]]])
 
-        for scenario in st.session_state["selected_scenarios"]:
-            chart_df = None
-            for sheet_name, df in st.session_state["selected_data"].items():
-                if df is not None:
-                    columns_to_plot = [col for col in df.columns if scenario in col]
-                    if len(columns_to_plot) < 2:
-                        st.sidebar.write("Not enough columns for the selected scenario.")
-                        continue
+        for agent in st.session_state["selected_agents"]:
+            for scenario in st.session_state["selected_scenarios"]:
+                chart_df = None
+                for sheet_name in st.session_state["selected_sheets"]:
+                    df = st.session_state["selected_data"][agent][sheet_name]  # Updated line
+                    df = df[df['Time'] > 41]
 
-                    df_modified = df[['Time'] + columns_to_plot].copy()
+                    if df is not None:
+                        # df = df.copy()
+                        # df['Time_plot'] = df['Time'] - 41
+                        columns_to_plot = [col for col in df.columns if scenario in col]
+                        if len(columns_to_plot) < 2:
+                            st.sidebar.write("Not enough columns for the selected scenario.")
+                            continue
 
-                    for column in columns_to_plot:
-                        if sheet_name in ['DS1-order', 'DS2-order']:
-                            std_dev = df_modified[column].std()
-                            df_modified[column] = df_modified[column].apply(
-                                lambda x: round(x - std_dev, 0) if x >= std_dev else x)
-                            df_modified[column] = df_modified[column].rolling(window=3, min_periods=1).mean().apply(
-                                lambda x: round(x, 0))
+                        df_modified = df[['Time'] + columns_to_plot].copy()
 
-                    df_modified['Average'] = df_modified[columns_to_plot].mean(axis=1)
-                    df_modified['State'] = sheet_name
+                        for column in columns_to_plot:
+                            if sheet_name in ['DS1-order', 'DS2-order']:
+                                std_dev = df_modified[column].std()
+                                df_modified[column] = df_modified[column].apply(
+                                    lambda x: round(x - std_dev, 0) if x >= std_dev else x)
+                                df_modified[column] = df_modified[column].rolling(window=3, min_periods=1).mean().apply(
+                                    lambda x: round(x, 0))
 
-                    label = label_dict[sheet_name]  # Define label here
+                        df_modified['Average'] = df_modified[columns_to_plot].mean(axis=1)
+                        df_modified['State'] = sheet_name + '_' + agent
+                        df_modified['Time_plot'] = df_modified['Time'] - 41
 
-                    if chart_df is None:
-                        chart_df = df_modified[['Time', 'Average', 'State']].copy()
+                        label = label_dict[sheet_name]  # Define label here
+
+                        if chart_df is None:
+                            chart_df = df_modified[['Time_plot', 'Average', 'State']].copy()
+                        else:
+                            chart_df = pd.concat([chart_df, df_modified[['Time_plot', 'Average', 'State']]],
+                                                 ignore_index=True)
                     else:
-                        chart_df = pd.concat([chart_df, df_modified[['Time', 'Average', 'State']]], ignore_index=True)
-                else:
-                    st.sidebar.write("Invalid sheet selected.")
+                        st.sidebar.write("Invalid sheet selected.")
 
-            # Define the line
-            line = alt.Chart(chart_df).mark_line().encode(
-                x=alt.X('Time', title='Time Period'),
-                y=alt.Y('Average', title=label),  # Use label here
-                color='State:N'
-            )
+                # Define the line
+                line = alt.Chart(chart_df).mark_line().encode(
+                    x=alt.X('Time_plot', title='Time Period'),
+                    y=alt.Y('Average', title=label),  # Use label here
+                    color='State:N'
+                )
 
-            # Define the disruption rectangle
-            rect = alt.Chart(disruption).mark_rect().encode(
-                x='start:Q',
-                x2='end:Q',
-                color=alt.value('lightgreen')
-            )
+                # Define the disruption rectangle
+                rect = alt.Chart(disruption).mark_rect().encode(
+                    x='start:Q',
+                    x2='end:Q',
+                    color=alt.value('lightgreen')
+                )
 
-            # Combine charts
-            chart = alt.layer(line, rect).properties(
-                width=500,
-                height=300,
-                title=f"Sensitivity factor: {scenario}"
-            )
+                # Combine charts
+                chart = alt.layer(line, rect).properties(
+                    width=500,
+                    height=300,
+                    title=f"Sensitivity factor: {scenario} - Agent: {agent}",
+                    # scale=alt.Scale(domain=(1, 259))
+                )
 
-            st.altair_chart(chart, use_container_width=True)
+                st.altair_chart(chart, use_container_width=True)
 
     def display_rewards_and_time_taken(self):
-        sheets_to_display = ['DS1-reward', 'DS2-reward', 'time-taken']
-        avg_data = []
+        sheets_to_display = ['DS1-reward', 'DS2-reward', 'HC1-T-DS1', 'HC1-T-DS2', 'time-taken']
+        avg_data = {agent: [] for agent in st.session_state["selected_agents"]}  # Split by agent
 
-        for sheet_name in sheets_to_display:
-            file_path = f"app_data/DS1_MN1_{st.session_state['agent']}_{st.session_state['order_type']}_" \
-                        f"{st.session_state['selected_disruption']}.xlsx"
-            data = load_data(file_path)
-            df = data.get(sheet_name)
+        for agent in st.session_state["selected_agents"]:  # Loop over agents
+            for sheet_name in sheets_to_display:
+                file_path = f"app_data/DS1_MN1_{agent}_{st.session_state['order_type']}_" \
+                            f"{st.session_state['selected_disruption']}.xlsx"
+                data = load_data(file_path)
+                df = data.get(sheet_name)
+                df = df[df['Time'] > 40]
 
-            if df is not None:
-                for scenario in st.session_state["selected_scenarios"]:
-                    columns_to_plot = [col for col in df.columns if scenario in col]
+                if df is not None:
+                    for scenario in st.session_state["selected_scenarios"]:
+                        columns_to_plot = [col for col in df.columns if scenario in col]
 
-                    if len(columns_to_plot) > 0:
-                        avg_val = df[columns_to_plot].mean().mean()
-                        avg_data.append({
-                            'Sensitivity factor': scenario,
-                            '': sheet_name,
-                            'Average of DSs reward and time taken': avg_val
-                        })
+                        if len(columns_to_plot) > 0:
+                            avg_val = df[columns_to_plot].mean().mean()
+                            avg_data[agent].append({  # Add to agent-specific data
+                                'Sensitivity factor': scenario,
+                                '': sheet_name,
+                                f'Average of DSs reward, HCs Trust to DS1, and time taken ({agent})': avg_val
+                            })
 
-        if avg_data:
-            avg_df = pd.DataFrame(avg_data)
-            st.table(avg_df)
-        else:
-            st.write("No data available for the selected scenario and sheets.")
+        for agent, data in avg_data.items():  # Loop over agent data
+            if data:
+                avg_df = pd.DataFrame(data)
+                st.write(f"#### {agent} Data")  # Add a title for each table
+                st.table(avg_df)
+            else:
+                st.write(f"No data available for agent {agent} and the selected scenario and sheets.")
 
 
 class InventoryAnalysis:
@@ -318,6 +260,10 @@ class InventoryAnalysis:
         if not st.session_state["welcome"]:
             self.user_inputs.agent_selector()
 
+            # Initialize 'selected_agents' in the session state
+            if "agents" in st.session_state:
+                st.session_state["selected_agents"] = st.session_state["agents"]
+
             if "selected_data" in st.session_state:
                 self.interactive_chart.update_data()
                 self.interactive_chart.draw_chart()
@@ -327,3 +273,4 @@ class InventoryAnalysis:
 if __name__ == "__main__":
     app = InventoryAnalysis()
     app.execute()
+
