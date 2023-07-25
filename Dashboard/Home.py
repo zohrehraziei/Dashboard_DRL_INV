@@ -128,16 +128,16 @@ class InteractiveChart:
         # 67-72 considering warm up periods 108 - 113
         # 108 - 126
         # 108 to 144
-        self.disruptions = {
-            'short (67-72)': {"start": 108, "end": 113},
-            'moderate (67-85)': {"start": 108, "end": 126},
-            'long (67-103)': {"start": 108, "end": 144},
-        }
         # self.disruptions = {
-        #     'short (67-72)': {"start": 67, "end": 72},
-        #     'moderate (67-85)': {"start": 67, "end": 85},
-        #     'long (67-103)': {"start": 67, "end": 103},
+        #     'short (67-72)': {"start": 108, "end": 113},
+        #     'moderate (67-85)': {"start": 108, "end": 126},
+        #     'long (67-103)': {"start": 108, "end": 144},
         # }
+        self.disruptions = {
+            'short (67-72)': {"start": 67, "end": 72},
+            'moderate (67-85)': {"start": 67, "end": 85},
+            'long (67-103)': {"start": 67, "end": 103},
+        }
 
     def update_data(self):
         self.df = st.session_state.get("selected_data").copy()
