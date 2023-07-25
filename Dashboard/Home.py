@@ -58,7 +58,7 @@ class UserInputs:
         def set_order_type():
             st.session_state["order_type"] = st.session_state["order_type_selector"]
 
-        agent_list = ['DRL', 'PS']
+        agent_list = ['DRL', 'PS', 'basestock']
         agents = st.sidebar.multiselect(
             label="Select Intelligent agent (distributor#1) type:",
             options=agent_list,
@@ -98,10 +98,10 @@ class UserInputs:
         if "selected_scenarios" in st.session_state:
             sheet_list = ['DS1-order', 'DS1-inventory', 'DS1-Up', 'DS2-order',
                           'DS2-inventory', 'DS2-Up', 'DS1-backlog', 'DS2-backlog', 'DS1-Leadtime', 'DS2-Leadtime',
-                          'HC1-orderDS1', 'HC1-orderDS2']
+                          'HC1-Leadtime', 'HC2-Leadtime']
 
             selected_sheets = st.sidebar.multiselect(
-                label="Select DS's states, DS's reward, or HC's trust to plot:",
+                label="Select states to plot:",
                 options=sheet_list,
                 default=sheet_list[0],
                 key="state_selector"
@@ -125,11 +125,19 @@ class UserInputs:
 class InteractiveChart:
     def __init__(self):
         self.df = None
+        # 67-72 considering warm up periods 108 - 113
+        # 108 - 126
+        # 108 to 144
         self.disruptions = {
-            'short (67-72)': {"start": 67, "end": 72},
-            'moderate (67-85)': {"start": 67, "end": 85},
-            'long (67-103)': {"start": 67, "end": 103},
+            'short (67-72)': {"start": 108, "end": 113},
+            'moderate (67-85)': {"start": 108, "end": 126},
+            'long (67-103)': {"start": 108, "end": 144},
         }
+        # self.disruptions = {
+        #     'short (67-72)': {"start": 67, "end": 72},
+        #     'moderate (67-85)': {"start": 67, "end": 85},
+        #     'long (67-103)': {"start": 67, "end": 103},
+        # }
 
     def update_data(self):
         self.df = st.session_state.get("selected_data").copy()
@@ -147,8 +155,10 @@ class InteractiveChart:
             'DS2-backlog': 'Backlog at DS2',
             'DS1-Leadtime': 'Est. of expt. lead time at DS1',
             'DS2-Leadtime': 'Est. of expt. lead time at DS2',
-            'HC1-orderDS1': "HC1's order to DS1",
-            'HC1-orderDS2': "HC1's order to DS2",
+            # 'HC1-orderDS1': "HC1's order to DS1",
+            # 'HC1-orderDS2': "HC1's order to DS2",
+            'HC1-Leadtime': "Est. of HC1 lead time",
+            'HC2-Leadtime': "Est. of HC2 lead time"
         }
 
         disruption = pd.DataFrame([self.disruptions[st.session_state["selected_disruption"]]])
@@ -156,6 +166,7 @@ class InteractiveChart:
         for agent in st.session_state["selected_agents"]:
             for scenario in st.session_state["selected_scenarios"]:
                 chart_df = None
+                label = ""  # Initialize label
                 for sheet_name in st.session_state["selected_sheets"]:
                     df = st.session_state["selected_data"][agent][sheet_name]  # Updated line
                     df = df[df['Time'] > 41]
@@ -182,42 +193,47 @@ class InteractiveChart:
                         df_modified['State'] = sheet_name + '_' + agent
                         df_modified['Time_plot'] = df_modified['Time'] - 41
 
-                        label = label_dict[sheet_name]  # Define label here
+                        # label = label_dict[sheet_name]  # Define label here
+                        label = label_dict.get(sheet_name, "")
 
                         if chart_df is None:
                             chart_df = df_modified[['Time_plot', 'Average', 'State']].copy()
                         else:
                             chart_df = pd.concat([chart_df, df_modified[['Time_plot', 'Average', 'State']]],
                                                  ignore_index=True)
+
+                        if len(columns_to_plot) > 0:
+                            # Define the line
+                            line = alt.Chart(chart_df).mark_line().encode(
+                                x=alt.X('Time_plot:Q', title='Time Period'),
+                                y=alt.Y('Average', title=label),  # Use label here
+                                color='State:N'
+                            )
+
+                            # Define the disruption rectangle
+                            rect = alt.Chart(disruption).mark_rect().encode(
+                                x='start:Q',
+                                x2='end:Q',
+                                color=alt.value('lightgreen')
+                            )
+
+                            # Combine charts
+                            chart = alt.layer(line, rect).properties(
+                                width=500,
+                                height=300,
+                                title=f"Sensitivity factor: {scenario} - Agent: {agent}",
+                                # scale=alt.Scale(domain=(1, 259))
+                            )
+
+                            st.altair_chart(chart, use_container_width=True)
+                        else:
+                            st.sidebar.write("No state available to plot!")
                     else:
                         st.sidebar.write("Invalid sheet selected.")
 
-                # Define the line
-                line = alt.Chart(chart_df).mark_line().encode(
-                    x=alt.X('Time_plot', title='Time Period'),
-                    y=alt.Y('Average', title=label),  # Use label here
-                    color='State:N'
-                )
-
-                # Define the disruption rectangle
-                rect = alt.Chart(disruption).mark_rect().encode(
-                    x='start:Q',
-                    x2='end:Q',
-                    color=alt.value('lightgreen')
-                )
-
-                # Combine charts
-                chart = alt.layer(line, rect).properties(
-                    width=500,
-                    height=300,
-                    title=f"Sensitivity factor: {scenario} - Agent: {agent}",
-                    # scale=alt.Scale(domain=(1, 259))
-                )
-
-                st.altair_chart(chart, use_container_width=True)
-
     def display_rewards_and_time_taken(self):
-        sheets_to_display = ['DS1-reward', 'DS2-reward', 'HC1-T-DS1', 'HC1-T-DS2', 'time-taken']
+        sheets_to_display = ['DS1-reward', 'DS2-reward', 'HC1-reward', 'HC2-reward',
+                             'HC1-T-DS1', 'HC1-T-DS2', 'time-taken']
         avg_data = {agent: [] for agent in st.session_state["selected_agents"]}  # Split by agent
 
         for agent in st.session_state["selected_agents"]:  # Loop over agents
