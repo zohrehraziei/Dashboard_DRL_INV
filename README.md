@@ -14,7 +14,6 @@ This Streamlit app is designed to analyze the results of a multi-agent DRL-based
 ### Application Metrics Functions
 
 1. `display_rewards()`
-   - **Description**: Calculates and displays average rewards for agents under various scenarios and disruptions.
    - **Metrics**: Average reward values.
 
 2. `display_backlog_inventory()`
@@ -22,20 +21,16 @@ This Streamlit app is designed to analyze the results of a multi-agent DRL-based
    - **Metrics**: Mean and STD of backlog and inventory.
 
 3. `draw_box_plots()`
-   - **Description**: Generates box plots for trust levels towards distributors.
    - **Metrics**: Distribution, median, and outliers of trust levels.
 
 4. `display_order_fluctuation()`
    - **Description**: Calculates and displays Mean Absolute Deviation (MAD) of orders.
-   - **Purpose**: Understands stability and consistency of order patterns.
-   - **Metrics**: Mean order value and Mean Absolute Difference (MAD).
+   - **Metrics**: Mean order value and MAD.
 
 5. `display_average_lead_time()`
-   - **Description**: Visualizes average lead time under different scenarios.
    - **Metrics**: Average lead time, lower and upper bounds.
 
 6. `display_order_lead_time_stability()`
-   - **Description**: Presents stability of order lead times.
    - **Metrics**: Standard deviation and mean of lead times.
 
 ## How to Run Locally
