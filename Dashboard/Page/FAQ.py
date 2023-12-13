@@ -1,29 +1,19 @@
+
 import streamlit as st
 import pandas as pd
 
-# https://northeastern-my.sharepoint.com/:x:/r/personal/raziei_z_northeastern_edu/
-# _layouts/15/Doc.aspx?sourcedoc=%7B39f8efaa-b914-4234-8dd2-a2926053a930%7D&action=edit&wdinitialsession=50d0d606-35ce
-# -412e-b7bb-8d5546d50a34&wdrldsc=22&wdrldc=1&wdrldr=ContinueInExcel&wdenableroaming=1&wdodb=1&wdorigin=Other
-# &wdredirectionreason=Force_SingleStepBoot
 st.write("## FAQ")
 
-st.write("### Key metrics")
-st.write("All key metrics are presented for ....")
-st.write("**Trust:** Sensitivity factor analysis.")
-st.write("**Trust:** Disrupted DS cost and order to MN1 analysis\
-         model.")
-
+st.write("### Key Metrics")
+st.write("All key metrics are presented for detailed analysis of the inventory management system. Here's a brief overview:")
+st.write("- **Average Rewards**: Evaluates agent effectiveness based on the average rewards achieved under different scenarios.")
+st.write("- **Backlog and Inventory Levels (Mean & STD)**: Assesses how well the system manages inventory and backlogs, with mean and standard deviation metrics.")
+st.write("- **Trust Level Distribution**: Analyzes the trust dynamics between health centers and distributors, presented in a box plot format.")
+st.write("- **Order Fluctuation (MAD)**: Indicates the stability and consistency of order patterns through the Mean Absolute Deviation metric.")
+st.write("- **Average Lead Time**: Shows the responsiveness and efficiency of the supply chain, including variability.")
+st.write("- **Order Lead Time Stability**: Highlights the predictability and reliability of lead times in the supply chain.")
 
 st.write("### Data")
-st.write("Raw data is pulled from Snowflake\
-         (GENESYS_WFM_PERFORMANCE_30M table) and includes a timestamp, call\
-         type, call volume, average handling time (AHT), average speed to\
-         answer (ASA), and staff present during 30-minute intervals across the\
-         year.")
+st.write("Raw data needs to be pulled manually into the `app_data` directory. This includes various datasets required for the analysis of the inventory management system.")
 
 
-
-st.write("### Lead Time")
-st.write("wirte comment\
-         here.\
-         ")
