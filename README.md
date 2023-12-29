@@ -1,7 +1,7 @@
 # Interactive Analysis Tool for "A Deep Reinforcement Learning Aided Inventory Control Algorithm"
 
 ## Overview
-This Streamlit app is designed to analyze the results of a multi-agent DRL-based inventory management problem, specifically focusing on drug shortages. It provides an intuitive interface for users to interact with, visualize, and understand complex inventory dynamics; **The code for the DRL inventory algorithm will be published upon the paper's publication on arXiv**.
+This Streamlit app is designed to analyze the results of a multi-agent DRL-based inventory management problem, specifically focusing on drug shortages. It provides an intuitive interface for users to interact with, visualize, and understand complex inventory dynamics. **The code for the [DRL inventory control algorithms](https://github.com/zohrehraziei/DRL_InventoryManagement.git) will be published upon the paper's publication on arXiv**.
 
 ### App Logic Structure
 
